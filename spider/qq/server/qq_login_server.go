@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 )
@@ -10,6 +11,7 @@ import (
 func qzone(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm() //解析参数，默认是不会解析的
 	url := r.Form.Get("data")
+	log.Println("url:", url)
 	saveInfo(url)
 }
 

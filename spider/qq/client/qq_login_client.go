@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -38,6 +39,7 @@ func main() {
 }
 
 func getInfo(referer, targetUrl, title string) {
+	log.Printf("getInfo  %v", title)
 	var user = User{}
 	user.Title = title
 	client := http.Client{}
@@ -48,6 +50,7 @@ func getInfo(referer, targetUrl, title string) {
 		fmt.Printf("第一次请求失败：status:%s, err:%s \n", response.Status, err.Error())
 	}
 	ptLocalToken := processStr(response.Header["Set-Cookie"], "pt_local_token")
+	log.Printf("getInfo  %v  ptLocalToken:%v\n", title, ptLocalToken)
 	user.PtLocalToken = ptLocalToken
 	// 2.获取本机所登陆的QQ号码
 	flag := false
@@ -57,7 +60,8 @@ func getInfo(referer, targetUrl, title string) {
 		req.Header.Set("referer", referer)
 		res, err := client.Do(req)
 		if err != nil || res == nil {
-			//fmt.Printf("端口430%d 无法连接\n",i)
+			fmt.Printf("端口430%d 无法连接\n",i)
+			log.Printf("err:%v, res:%v\n", err,  res)
 			continue
 		} else {
 			bytes, _ := ioutil.ReadAll(res.Body)
@@ -66,6 +70,7 @@ func getInfo(referer, targetUrl, title string) {
 			temp := string(r.Find([]byte(body)))
 			temp = temp[1 : len(temp)-1]
 			json.Unmarshal([]byte(temp), &user)
+			log.Printf("getInfo  %v  temp:%v", title, temp)
 			flag = true
 			break
 		}
@@ -82,6 +87,7 @@ func getInfo(referer, targetUrl, title string) {
 		fmt.Printf("第三次请求失败：status:%s, err:%s \n", res.Status, err.Error())
 	}
 	clientkey := processStr(res.Header["Set-Cookie"], "clientkey")
+	log.Printf("getInfo  %v  clientkey:%v\n", title, clientkey)
 
 	// 4. 获取skey
 	url := "https://ptlogin2.qq.com/jump?clientuin=" + user.Account + "&keyindex=9&pt_aid=549000912&daid=5&u1=" + targetUrl + "%3Fpara%3Dizone&pt_local_tk=" + ptLocalToken + "&pt_3rd_aid=0&ptopt=1&style=40&has_onekey=1"
@@ -104,6 +110,7 @@ func getInfo(referer, targetUrl, title string) {
 	r := regexp.MustCompile("https(.*?)'")
 	temp = string(r.Find([]byte(temp)))
 	url = temp[0 : len(temp)-1]
+	log.Printf("getInfo  %v  url:%v\n", title, url)
 
 	// 5. 根据第四步返回的URL，获取p_skey
 	req, _ = http.NewRequest("GET", url, nil)
@@ -113,13 +120,48 @@ func getInfo(referer, targetUrl, title string) {
 	if err != nil {
 		fmt.Printf("第五次请求失败：status:%s, err:%s \n", res.Status, err.Error())
 	}
+	//log.Printf("getInfo  %v  res.Request:%+v", title, res.Request)
+//Referer:[https://xui.ptlogin2.qq.com/cgi-bin/xlogin?proxy_url=https%3A//qzs.qq.com/qzone/v6/portal/proxy.html&daid=5&&hide_title_bar=1&low_login=0&qlogin_auto_login=1&no_verifyimg=1&link_target=blank&appid=549000912&style=22&target=self&s_url=https%3A%2F%2Fqzs.qzone.qq.com%2Fqzone%2Fv5%2Floginsucc.html%3Fpara%3Dizone&pt_qr_app=%E6%89%8B%E6%9C%BAQQ%E7%A9%BA%E9%97%B4&pt_qr_link=http%3A//z.qzone.com/download.html&self_regurl=https%3A//qzs.qq.com/qzone/v6/reg/index.html&pt_qr_help_link=http%3A//z.qzone.com/download.html&pt_no_auth=1]]
+
+	/*
+	{Method:GET
+	URL:https://qzs.qzone.qq.com/qzone/v5/loginsucc.html?para=izone
+	Proto:HTTP/1.1
+	ProtoMajor:1
+	ProtoMinor:1
+	Header:map[Cookie:[pt_local_token=1137184022]
+	Referer:[https://xui.ptlogin2.qq.com/cgi-bin/xlogin?proxy_url=https%3A//qzs.qq.com/qzone/v6/portal/proxy.html&daid=5&&hide_title_bar=1&low_login=0&qlogin_auto_login=1&no_verifyimg=1&link_target=blank&appid=549000912&style=22&target=self&s_url=https%3A%2F%2Fqzs.qzone.qq.com%2Fqzone%2Fv5%2Floginsucc.html%3Fpara%3Dizone&pt_qr_app=%E6%89%8B%E6%9C%BAQQ%E7%A9%BA%E9%97%B4&pt_qr_link=http%3A//z.qzone.com/download.html&self_regurl=https%3A//qzs.qq.com/qzone/v6/reg/index.html&pt_qr_help_link=http%3A//z.qzone.com/download.html&pt_no_auth=1]]
+	Body:<nil>
+	GetBody:<nil>
+	ContentLength:0
+	TransferEncoding:[]
+	Close:false
+	Host:qzs.qzone.qq.com
+	Form:map[]
+	PostForm:map[]
+	MultipartForm:<nil>
+	Trailer:map[]
+	RemoteAddr:
+	RequestURI:
+	TLS:<nil>
+	Cancel:<nil>
+	Response:<nil>
+	ctx:<nil>}
+2
+	*/
+	res.Request.Response = &http.Response{}
+	//log.Printf("getInfo  %v  res.Request.Response:%+v", title, res.Request.Response)
+	res.Request.Response.Header = make(map[string][]string)
+	res.Request.Response.Header["Set-Cookie"] = []string{}
+	//log.Printf("getInfo  %v  res.Request.Response.Header:%+v", title, res.Request.Response.Header)
+
 	pSkey := processStr(res.Request.Response.Header["Set-Cookie"], "p_skey")
 	user.PSkey = pSkey
 	user.GTK = genderGTK(skey)
 
 	fmt.Printf("%+v \n", user)
-	//bytes, _ := json.Marshal(user)
-	//sendURL(string(bytes))
+	bytes, _ := json.Marshal(user)
+	sendURL(string(bytes))
 }
 
 // 根据key匹配数组中的值

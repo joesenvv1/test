@@ -10,7 +10,6 @@ import (
 )
 
 // 生产者
-
 func main() {
 	config := sarama.NewConfig()
 	config.Producer.Return.Successes = true

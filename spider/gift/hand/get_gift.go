@@ -49,7 +49,8 @@ func main() {
 }
 
 func getCookie() string {
-	bytes, err := ioutil.ReadFile("http/gift/cookie")
+	//bytes, err := ioutil.ReadFile("http/gift/cookie")
+	bytes, err := ioutil.ReadFile("/Users/joesen/Desktop/workplace/goproject/src/github.com/pibigstar/go-demo/spider/gift/cookie")
 	if err != nil {
 		fmt.Println("读取Cookie失败:", err.Error())
 	}
